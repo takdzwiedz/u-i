@@ -11,22 +11,12 @@ interface Depot
 abstract class AbstractDepot
 {
     protected $bricksOnStock;
-
     private $amount;
-
-    private $price;
-
-    private $sum;
-
-    private $totalAmountOfBricks;
 
     public function __construct()
     {
         $this->bricksOnStock = [];
         $this->amount = 0;
-        $this->price = 0.00;
-        $this->sum = 0;
-        $this->totalAmountOfBricks = 0;
     }
 
     public function getBricksOnStock()
@@ -39,32 +29,6 @@ abstract class AbstractDepot
         $this->bricksOnStock = $bricksOnStock;
     }
 
-    public function getSum(): int
-    {
-        return $this->sum;
-    }
-
-    public function setSum(int $sum): void
-    {
-        $this->sum = $sum;
-    }
-
-    public function showBricksOnStock()
-    {
-        echo "<pre>";
-        print_r($this->getBricksOnStock());
-    }
-
-    public function getTotalAmountOfBricks(): int
-    {
-        return $this->totalAmountOfBricks;
-    }
-
-    public function setTotalAmountOfBricks($totalAmountOfBricks): void
-    {
-        $this->totalAmountOfBricks = $totalAmountOfBricks;
-    }
-
     public function setAmount(int $amount): void
     {
         $this->amount = $amount;
@@ -75,6 +39,12 @@ abstract class AbstractDepot
         return $this->amount;
     }
 
+    public function showBricksOnStock()
+    {
+        echo "<pre>";
+        print_r($this->getBricksOnStock());
+    }
+
 }
 
 final class BuildingDepot extends AbstractDepot implements Depot
@@ -83,38 +53,11 @@ final class BuildingDepot extends AbstractDepot implements Depot
     public function store(int $amount, float $price): void
     {
         $bricksOnStock = $this->getBricksOnStock();
-        $bricksOnStock[] = array("amount" => $amount, "price" => $price);
-        $this->setBricksOnStock($bricksOnStock);
-    }
-
-    public function setUpdate(int $amount, float $partPrice): array
-    {
-        $bricksQuantityInSet = $this->getBricksOnStock()[0]["amount"];
-        $priceInSet = $this->getBricksOnStock()[0]["price"];
-
-        if ($bricksQuantityInSet > $amount) {
-            $newBricksQuantityInSet = $bricksQuantityInSet - $amount;
-            $newAmount = 0;
-            $partPrice = $partPrice + $amount * $priceInSet;
-            $x = $this->getBricksOnStock();
-            array("amount" => $newBricksQuantityInSet, "price" => $priceInSet);
-            $x[0] = array("amount" => $newBricksQuantityInSet, "price" => $priceInSet);
-            $this->setBricksOnStock($x);
-
-        } else {
-            $newAmount = $amount - $bricksQuantityInSet;
-            $partPrice = $partPrice + $bricksQuantityInSet * $priceInSet;
-            unset($this->bricksOnStock[0]);
-            $x = $this->getBricksOnStock();
-            $this->setBricksOnStock(array_values($x));
-        }
-
-        $data = array(
-            "newAmount" => $newAmount,
-            "partPrice" => $partPrice
+        $bricksOnStock[] = array(
+            "amount" => $amount,
+            "price" => $price
         );
-
-        return $data;
+        $this->setBricksOnStock($bricksOnStock);
     }
 
     public function pull(int $amount): float
@@ -129,14 +72,16 @@ final class BuildingDepot extends AbstractDepot implements Depot
             } else {
                 $price = 0;
                 while ($amount > 0) {
-                    $data = $this->setUpdate($amount, $price);
+
+                    $data = $this->updateSet($amount, $price);
                     $amount = $data["newAmount"];
                     $price = $data["partPrice"];
                 }
                 return $price;
             }
         } catch (Exception $e) {
-            echo "Exception: ".$e->getMessage(); exit();
+            echo "<b>Exception</b>: " . $e->getMessage();
+            exit();
         }
     }
 
@@ -148,12 +93,43 @@ final class BuildingDepot extends AbstractDepot implements Depot
         }
         return $totalAmountOfBricks;
     }
+
+    public function updateSet(int $amount, float $price): array
+    {
+        $bricksInSet = $this->getBricksOnStock()[0]["amount"];
+        $priceInSet = $this->getBricksOnStock()[0]["price"];
+
+        if ($bricksInSet > $amount) {
+            $newBricksQuantityInSet = $bricksInSet - $amount;
+            $newAmount = 0;
+            $price = $price + $amount * $priceInSet;
+            $bricksOnStock = $this->getBricksOnStock();
+            $bricksOnStock[0] = array(
+                "amount" => $newBricksQuantityInSet,
+                "price" => $priceInSet
+            );
+            $this->setBricksOnStock($bricksOnStock);
+        } else {
+            $newAmount = $amount - $bricksInSet;
+            $price = $price + $bricksInSet * $priceInSet;
+            unset($this->bricksOnStock[0]);
+            $this->setBricksOnStock(array_values($this->getBricksOnStock()));
+        }
+
+        $data = array(
+            "newAmount" => $newAmount,
+            "partPrice" => $price
+        );
+
+        return $data;
+    }
+
 }
 
 $obj = new BuildingDepot();
 $obj->store(1000, 2.5);
-echo $obj->pull(700);
+$obj->pull(700);
 $obj->store(200, 2.4);
 $obj->store(1000, 2.3);
 $obj->pull(1000);
-echo $obj->pull(1000);
+$obj->pull(501);
